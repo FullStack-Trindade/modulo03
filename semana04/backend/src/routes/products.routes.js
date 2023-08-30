@@ -1,7 +1,6 @@
 const { create, findAll, findOne, findAllAdm, remove, restore} = require('../controllers/product.controller')
 const { Router } = require('express')
 const { auth } = require('../middlewares/auth.middleware')
-const { username } = require('../config/database.config')
 
 
 class ProductRouter{
