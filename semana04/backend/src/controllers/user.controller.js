@@ -1,6 +1,10 @@
+const Sentry = require('@sentry/node');
 const { sign } = require('jsonwebtoken')
 const { User } = require('../models/User')
 const { Cart } = require('../models/Cart')
+const { update } = require('../services/user.services')
+const bcrypt = require('bcrypt')
+
 
 class UserController {
     async create(req, res) {
@@ -57,6 +61,37 @@ class UserController {
         }
     }
 
+    async update(req, res) {
+        try {
+            const { userId } = req.params
+            const { name } = req.body
+
+            const user = await User.findByPk(userId)
+
+            if(!user) {
+                return res.status(404).send({message: "Usuário não encontrado."})
+            }
+
+            if(!name) {
+                return res.status(400).send({message: "Nenhum campo informado é valido para alteração."})
+            }
+
+            if(name === user.name) {
+                return res.status(403).send({message: "Usuário já utiliza esse nome."})
+            }
+
+            await update(userId, {name})
+
+            return res.status(204).send()
+
+        } catch (error) {
+            return res.status(400).send({
+                message: "Erro ao realizar o update de usuário",
+                cause: error.message
+            })
+        }
+    }
+
     async login(req, res) {
         try {
             const { email, password } = req.body
@@ -69,19 +104,21 @@ class UserController {
                 return res.status(404).send({message: "Usuário não Encontrado!"})
             }
 
-            if ( user.password === password ) {
-                const payload = {
-                    name: user.name,
-                    email: user.email
-                }
+            const match = bcrypt.compareSync(password, user.password)
 
-                const token = sign(payload, process.env.JWT_SECRET)
-                return res.status(200).send({token})
-            }
-            else {
-                return res.status(400).send({message: "Senha inválida"})
+            if (!match){
+                return res.status(401).send({message: "Senha Inválida!"})
             }
 
+            const payload = {
+                userId: user.userId,
+                name: user.name,
+                email: user.email
+            }
+
+            const token = sign(payload, process.env.JWT_SECRET, { expiresIn: "1d" })
+
+            return res.status(200).send({token})
         } catch (error) {
             return res.status(400).send({
                 message: "Erro ao realizar o login do usuário",
@@ -110,6 +147,34 @@ class UserController {
                 cause: error.message
             })
         }
+    }
+
+    async updatePassword(req, res) {
+        try {
+            const { userId } = req.params
+            const { password } = req.body
+
+            const user = await User.findByPk(userId)
+
+            if(!user) {
+                return res.status(404).send({message: "Usuário não encontrado."})
+            }
+
+            const match = bcrypt.compareSync(password, user.password)
+            if(match) {
+                return res.status(400).json({ error: "A senha já está sendo usada!"})
+            }
+
+            await update(userId, {password})
+
+            return res.status(204).send()
+        } catch (error) {
+            return res.status(400).send({
+                message: "Erro ao realizar o update de senha do usuário",
+                cause: error.message
+            })
+        }
+
     }
 }
 

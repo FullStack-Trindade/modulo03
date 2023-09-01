@@ -1,7 +1,6 @@
 const { Cart } = require('../models/Cart')
 const { Product } = require('../models/Product')
 
-
 class CartController {
     async create(req, res) {
         try {

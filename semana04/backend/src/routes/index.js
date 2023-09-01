@@ -10,6 +10,7 @@ routes.use('/api', [
     routesFromUser(),
     routesFromProduct(),
     routesFromCart()
+    
 ])
 
 module.exports = routes
