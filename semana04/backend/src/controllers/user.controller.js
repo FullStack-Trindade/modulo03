@@ -2,7 +2,7 @@ const Sentry = require('@sentry/node');
 const { sign } = require('jsonwebtoken')
 const { User } = require('../models/User')
 const { Cart } = require('../models/Cart')
-const { update } = require('../services/user.services')
+const { update, verifyUser } = require('../services/user.service')
 const bcrypt = require('bcrypt')
 
 
@@ -100,8 +100,10 @@ class UserController {
                 where: { email }
             })
 
-            if(!user){
-                return res.status(404).send({message: "Usuário não Encontrado!"})
+            const userVerified = await verifyUser(user)
+
+            if(!userVerified){
+                return res.status(404).send({message: "O usuário informado não existe!"})
             }
 
             const match = bcrypt.compareSync(password, user.password)
@@ -120,6 +122,7 @@ class UserController {
 
             return res.status(200).send({token})
         } catch (error) {
+            Sentry.captureException(error);
             return res.status(400).send({
                 message: "Erro ao realizar o login do usuário",
                 cause: error.message
@@ -136,9 +139,7 @@ class UserController {
                     [{model: Cart, as: 'carts', key: 'user_id'}]
             })
 
-            if(!user){
-                return res.status(404).send({message:`Usuário não encontrado`})
-            }
+            await verifyUser(user)
 
             return res.status(200).send({user})
         } catch (error) {

@@ -13,6 +13,15 @@ class UserService {
             { where: {userId}, individualHooks: true}
         )
     }
+
+    async verifyUser(user){
+        if(!user){
+            return false
+        }
+        else{
+            return true
+        }
+    }
 }
 
 module.exports = new UserService()
